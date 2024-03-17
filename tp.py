@@ -2,8 +2,18 @@ import cv2
 import numpy as np
 import math
 
-image = cv2.imread('test-aruco3.jpg')
-# image = cv2.imread('flecheAR.jpg')
+
+def sort_coordinates(list_of_xy_coords):
+    cx, cy = list_of_xy_coords.mean(0)
+    x, y = list_of_xy_coords.T
+    angles = np.arctan2(x-cx, y-cy)
+    indices = np.argsort(angles)
+    sort_coords = list_of_xy_coords[indices]
+    sort_coords = np.roll(sort_coords, -1, axis=0)
+    return sort_coords
+
+
+image = cv2.imread('test-aruco4.jpg')
 dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_250)
 parameters = cv2.aruco.DetectorParameters()
 markerCorners, markerIds, rejectedCandidates = cv2.aruco.detectMarkers(image, dictionary, parameters=parameters)
@@ -47,18 +57,14 @@ if len(markerCorners) == 4:
         # enregistre les coordonnées du centre des aruco dans un tableau
         croppedCorners.append((cX, cY))
 
-    # tri des coordonnées pour former un quadrilatère dont les cotés ne se croisent pas
-    # Trouver le coin supérieur gauche (le point avec les coordonnées minimales)
-    coin_superieur_gauche = min(croppedCorners, key=lambda p: (p[0], p[1]))
 
-    # Trier les coordonnées en fonction des angles polaires par rapport au coin supérieur gauche
-    croppedCorners = sorted(croppedCorners, key=lambda p: math.atan2(p[1] - coin_superieur_gauche[1],
-                                                                     p[0] - coin_superieur_gauche[0]))
+    # appel de la fonction pour trier les coordonnées selon le sens horaire
+    croppedCorners = sort_coordinates(np.array(croppedCorners, dtype=np.float32))
 
     print(croppedCorners)
 
     # Coordonnées du rectangle de destination
-    coordonnees = np.array(croppedCorners, dtype=np.float32)
+    coordonnees = croppedCorners
     dimensions = (400, 300)
     coordonnees_dest = np.array(
         [[0, 0], [dimensions[0], 0], [dimensions[0], dimensions[1]], [0, dimensions[1]]],
